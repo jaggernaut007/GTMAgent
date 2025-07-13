@@ -2,8 +2,10 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import uvicorn
+from chat_graph import process_message
+
 app = FastAPI(title="Startup Bakery API")
 
 # Configure CORS
@@ -26,33 +28,35 @@ class ChatResponse(BaseModel):
     response: str
     error: Optional[str] = None
 
+# In-memory conversation history (in a real app, use a database)
+conversation_history = {}
+
+def get_conversation_id(request: Request) -> str:
+    """Generate a unique ID for each conversation based on client IP."""
+    client = request.client
+    return f"{client.host}:{client.port}" if client else "default"
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(chat_request: ChatRequest, request: Request):
     try:
-        # Log incoming request details
-        print("\n=== Incoming Request ===")
-        print(f"Method: {request.method}")
-        print(f"URL: {request.url}")
-        print(f"Headers: {request.headers}")
-        print(f"Client: {request.client}")
-        print(f"Request body: {await request.body()}")
-        print(f"Parsed message: {chat_request}")
+        # Get or create conversation history for this client
+        conv_id = get_conversation_id(request)
+        if conv_id not in conversation_history:
+            conversation_history[conv_id] = []
         
-        # Process the message (you can add your chatbot logic here)
-        response_message = f"I received your message: {chat_request.message}"
-
-        # Prepare response
-        response = {
-            "response": response_message
-        }
+        # Log the incoming message
+        print(f"\n=== Message from {conv_id} ===")
+        print(f"Message: {chat_request.message}")
         
-        # print("\n=== Sending Response ===")
-        # print(f"Response: {response}")
+        # Process the message using our chat processor
+        response_message = process_message(chat_request.message)
         
-        return response
+        # Log the response
+        print(f"Response: {response_message}")
+        
+        return {"response": response_message}
         
     except Exception as e:
-        # Log the error for debugging
         error_msg = f"Error processing chat message: {str(e)}"
         print(f"\n!!! ERROR: {error_msg}")
         import traceback
