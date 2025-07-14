@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from operator import add
 from pathlib import Path
 from typing import Dict, List, TypedDict, Annotated, Any, Optional
@@ -91,12 +91,12 @@ class ChatProcessor:
                     messages.append(SystemMessage(content=msg["content"]))
             
             self.logger.debug(f"Sending {len(messages)} messages to LLM")
-            start_time = datetime.utcnow()
+            start_time = datetime.now(timezone.utc)
             
             # Get response from LLM
             response = self.llm.invoke(messages)
             
-            processing_time = (datetime.utcnow() - start_time).total_seconds()
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self.logger.info(
                 f"LLM call completed in {processing_time:.2f}s. "
                 f"Response length: {len(response.content)}"
@@ -141,7 +141,7 @@ class ChatProcessor:
             user_message = {
                 "role": "user",
                 "content": message,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
             
             # Add user message to history
@@ -167,9 +167,9 @@ class ChatProcessor:
             
             # Run the workflow with the processing history
             self.logger.debug("Invoking workflow...")
-            start_time = datetime.utcnow()
+            start_time = datetime.now(timezone.utc)
             result = self.workflow.invoke({"messages": processing_history})
-            processing_time = (datetime.utcnow() - start_time).total_seconds()
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             
             # Extract assistant's response
             response = result["messages"][-1]["content"]
@@ -181,7 +181,7 @@ class ChatProcessor:
             assistant_message = {
                 "role": "assistant",
                 "content": response,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
             self.chat_history.append(assistant_message)
             
@@ -213,12 +213,14 @@ class ChatManager:
             self.logger.debug(f"Returning existing ChatProcessor for conversation: {conversation_id}")
         return self.conversations[conversation_id]
     
-    def clear_conversation(self, conversation_id: str) -> None:
+    async def clear_conversation(self, conversation_id: str) -> None:
         """Clear a specific conversation."""
         if conversation_id in self.conversations:
             self.logger.info(f"Clearing conversation: {conversation_id}")
             try:
+                # Clear the conversation history
                 self.conversations[conversation_id].clear_history()
+                # Remove the conversation from the manager
                 self.conversations.pop(conversation_id, None)
                 self.logger.info(f"Successfully cleared conversation: {conversation_id}")
             except Exception as e:
@@ -252,7 +254,7 @@ def process_message(message: str, conversation_id: str = "default") -> str:
         logger.error(f"Error in process_message for conversation {conversation_id}: {str(e)}", exc_info=True)
         raise
 
-def clear_conversation(conversation_id: str = "default") -> None:
+async def clear_conversation(conversation_id: str = "default") -> None:
     """Clear a conversation's history.
     
     Args:
@@ -260,7 +262,7 @@ def clear_conversation(conversation_id: str = "default") -> None:
     """
     try:
         logger.info(f"Request to clear conversation: {conversation_id}")
-        chat_manager.clear_conversation(conversation_id)
+        await chat_manager.clear_conversation(conversation_id)
         logger.info(f"Successfully cleared conversation: {conversation_id}")
     except Exception as e:
         logger.error(f"Error clearing conversation {conversation_id}: {str(e)}", exc_info=True)

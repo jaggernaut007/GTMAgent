@@ -25,6 +25,7 @@ MANIFEST
 htmlcov/
 .pytest_cache/
 .mypy_cache/
+.pyc
 
 # Virtual Environment
 venv/

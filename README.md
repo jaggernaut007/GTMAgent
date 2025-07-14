@@ -27,10 +27,66 @@ An agentic AI chat assistant, designed to help you bake your next successful sta
 
 ### Prerequisites
 
-- Python 3.8+
-- Node.js 14+
+- Node.js (v14 or later)
+- Python 3.9+ (recommended: 3.9 or later)
 - npm or Yarn
 - Git
+- UV (Python package installer)
+
+### Python Installation
+
+#### macOS/Linux
+1. **Install Python** (if not already installed):
+   ```bash
+   # Using Homebrew (macOS)
+   brew install python
+   
+   # Or using system package manager (Ubuntu/Debian)
+   sudo apt update
+   sudo apt install python3 python3-pip python3-venv
+   ```
+
+2. **Verify installation**:
+   ```bash
+   python3 --version
+   pip3 --version
+   ```
+
+#### Windows
+1. **Download Python** from [python.org](https://www.python.org/downloads/)
+2. **Run the installer** and make sure to check "Add Python to PATH"
+3. **Verify installation** in Command Prompt or PowerShell:
+   ```cmd
+   python --version
+   pip --version
+   ```
+
+### UV Installation
+
+#### macOS/Linux
+```bash
+# Install uv using curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add uv to your shell's configuration file (e.g., ~/.bashrc, ~/.zshrc)
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc  # or ~/.bashrc
+source ~/.zshrc  # or ~/.bashrc
+
+# Verify installation
+uv --version
+```
+
+#### Windows (PowerShell)
+```powershell
+# Install uv using PowerShell
+irm https://astral.sh/uv/install.ps1 | iex
+
+# Add uv to your PATH (if not added automatically)
+[System.Environment]::SetEnvironmentVariable("Path", [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User) + ";$env:USERPROFILE\.cargo\bin", [System.EnvironmentVariableTarget]::User)
+
+# Restart your terminal and verify installation
+uv --version
+```
 
 ### Installation
 
@@ -63,7 +119,7 @@ An agentic AI chat assistant, designed to help you bake your next successful sta
 
 ```bash
 cd backend
-source .venv/bin/activate && uvicorn main:app --reload
+uv run uvicorn main:app --reload
 ```
 
 The backend will be available at `http://localhost:8000`
@@ -78,6 +134,38 @@ npm start
 ```
 
 The frontend will open automatically at `http://localhost:3000`
+
+## 🧪 Running Tests
+
+### Backend Tests
+
+To run the backend tests using `uv`, make sure you're in the backend directory:
+
+```bash
+cd backend
+
+# Run all tests
+uv run pytest tests/
+
+# Run a specific test file
+uv run pytest tests/test_main.py
+uv run pytest tests/test_chat_graph.py
+
+# Run tests with coverage report
+uv run pytest --cov=. tests/
+
+# Run tests with specific markers (if any)
+uv run pytest -m "not slow" tests/  # Example: skip slow tests
+
+# Run tests with verbose output
+uv run pytest -v tests/
+```
+
+### Test Files
+
+- `tests/test_main.py`: Tests for the FastAPI application endpoints
+- `tests/test_chat_graph.py`: Tests for the chat graph functionality
+- `tests/conftest.py`: Test fixtures and configurations
 
 ## 🤖 Chat System Architecture
 

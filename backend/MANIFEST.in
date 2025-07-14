@@ -1,0 +1,11 @@
+include README.md
+include requirements.txt
+include .env-example
+
+exclude logs/*
+exclude chat_history/*
+
+global-exclude *.py[cod] __pycache__/* *.so *.dylib *.dll *.pyd
+prune .venv
+prune .mypy_cache
+prune .pytest_cache

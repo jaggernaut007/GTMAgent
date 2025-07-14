@@ -6,28 +6,27 @@ build-backend = "setuptools.build_meta"
 name = "startup-bakery"
 version = "0.1.0"
 description = "Startup Bakery Backend API"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+
 dependencies = [
-    "fastapi>=0.68.0,<0.69.0",
-    "uvicorn>=0.15.0,<0.16.0",
-    "python-multipart>=0.0.5,<0.0.6",
-    "python-jose[cryptography]>=3.3.0,<4.0.0",
-    "passlib[bcrypt]>=1.7.4,<1.8.0",
-    "pydantic>=1.8.0,<2.0.0",
-    "python-dotenv>=0.19.0,<0.20.0"
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.35.0",
+    "python-multipart>=0.0.6",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic>=2.0.0,<3.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic-settings>=2.0.0"
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=6.0.0,<7.0.0",
-    "black>=22.0.0,<23.0.0",
-    "isort>=5.0.0,<6.0.0",
-    "mypy>=0.900,<1.0"
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [
+    "logs*",
+    "chat_history*",
+    "tests*",
+    ".*",
+    "*.log",
+    "*.pyc",
+    "__pycache__"
 ]
-
-[tool.uv.sources]
-# This section is used by uv for dependency resolution
-# It's automatically managed by uv, so no need to edit manually
-
-[tool.uv]
-# UV-specific settings can go here

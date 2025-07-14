@@ -1,8 +1,9 @@
 import logging
 import logging.config
 import os
-from datetime import datetime
-from typing import Optional, List, Dict, Any, Union
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from typing import Optional, List, Dict, Any, Union, AsyncGenerator
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, HTTPException, Header, Depends, status
@@ -53,25 +54,28 @@ logging.config.dictConfig({
 # Create logger for this module
 logger = logging.getLogger(__name__)
 
+# Lifespan event handler
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    # Startup event
+    logger.info("Starting Startup Bakery API server...")
+    logger.info(f"Environment: {os.getenv('ENV', 'development')}")
+    logger.info(f"Log level: {LOG_LEVEL}")
+    
+    yield  # This is where the application runs
+    
+    # Shutdown event
+    logger.info("Shutting down Startup Bakery API server...")
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="Startup Bakery API",
     description="API for the Startup Bakery chat application with conversation management",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
-
-# Log application startup
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting Startup Bakery API server...")
-    logger.info(f"Environment: {os.getenv('ENV', 'development')}")
-    logger.info(f"Log level: {LOG_LEVEL}")
-
-# Log application shutdown
-@app.on_event("shutdown")
-def shutdown_event():
-    logger.info("Shutting down Startup Bakery API server...")
 
 # Configure CORS
 app.add_middleware(
@@ -118,7 +122,7 @@ async def read_root():
         "message": "Welcome to Startup Bakery API. Let's start baking some dough!",
         "documentation": "/docs",
         "status": "running",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 # Chat endpoint
@@ -137,7 +141,7 @@ async def chat(
     logger.debug(f"Message content: {chat_request.message[:100]}..." if len(chat_request.message) > 100 else f"Message content: {chat_request.message}")
     
     try:
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         # Process the message with the conversation context
         response_message = process_message(
@@ -145,7 +149,7 @@ async def chat(
             conversation_id=conversation_id
         )
         
-        processing_time = (datetime.utcnow() - start_time).total_seconds()
+        processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
         logger.info(
             f"Successfully processed message in {processing_time:.2f}s. "
             f"Conversation: {conversation_id}, "
@@ -155,7 +159,7 @@ async def chat(
         return {
             "response": response_message,
             "conversation_id": conversation_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "error": None
         }
         
@@ -168,24 +172,25 @@ async def chat(
             content={
                 "response": "I'm sorry, I encountered an error processing your request.",
                 "conversation_id": conversation_id,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "error": str(e)
             }
         )
 
 # Conversation management endpoints
 @app.post("/conversations/{conversation_id}/clear", tags=["conversations"])
-async def clear_conversation(conversation_id: str):
+async def clear_conversation_endpoint(conversation_id: str):
     """Clear the history of a specific conversation."""
     logger.info(f"Clearing conversation: {conversation_id}")
     try:
-        clear_conversation(conversation_id)
+        from chat_graph import clear_conversation as clear_conv_func
+        await clear_conv_func(conversation_id)
         logger.info(f"Successfully cleared conversation: {conversation_id}")
         return {
             "status": "success",
             "message": f"Conversation {conversation_id} has been cleared",
             "conversation_id": conversation_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
         error_msg = f"Error clearing conversation {conversation_id}: {str(e)}"
@@ -236,7 +241,7 @@ async def health_check():
         health_data = {
             "status": "healthy",
             "service": "startup-bakery",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "active_conversations": len(chat_manager.conversations),
             "environment": os.getenv("ENV", "development"),
             "version": "1.0.0"
@@ -255,7 +260,7 @@ async def health_check():
             content={
                 "status": "unhealthy",
                 "error": error_msg,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         )
 
