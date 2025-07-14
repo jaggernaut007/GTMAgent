@@ -1,6 +1,6 @@
 # 🚀 Startup Bakery
 
-A full-stack application that combines a FastAPI backend with a modern React TypeScript frontend, designed to help you bake your next successful startup idea.
+An agentic AI chat assistant, designed to help you bake your next successful startup idea.
 
 ## 🍰 Features
 
@@ -18,8 +18,8 @@ A full-stack application that combines a FastAPI backend with a modern React Typ
 
 ## 🛠 Tech Stack
 
-- **Backend**: Python, FastAPI, Uvicorn
-- **Frontend**: React, TypeScript, styled-components
+- **Backend**: Python, FastAPI, Uvicorn, Langgraph
+- **Frontend**: React, TypeScript
 - **Build Tools**: npm, Create React App
 - **API Documentation**: Swagger UI, ReDoc
 
@@ -45,7 +45,8 @@ A full-stack application that combines a FastAPI backend with a modern React Typ
    cd backend
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+   uv pip install .
+   cp .env-example .env
    ```
 
 3. **Set up the frontend**
@@ -62,7 +63,7 @@ A full-stack application that combines a FastAPI backend with a modern React Typ
 
 ```bash
 cd backend
-uvicorn main:app --reload
+source .venv/bin/activate && uvicorn main:app --reload
 ```
 
 The backend will be available at `http://localhost:8000`
@@ -77,6 +78,49 @@ npm start
 ```
 
 The frontend will open automatically at `http://localhost:3000`
+
+## 🤖 Chat System Architecture
+
+The chat system is built with a modular and scalable architecture that enables stateful conversations and complex interactions. Here are the key components:
+
+### 🏗 Core Components
+
+#### Chat Graph
+- **LangGraph-based** state machine for managing conversation flow
+- **Stateful processing** with conversation context preservation
+- **Modular design** for easy extension of capabilities
+- **Token management** with intelligent message truncation
+
+#### Chat Manager
+- **Conversation lifecycle** management
+- **Thread-safe** conversation handling
+- **Global state** management for multi-user support
+- **Conversation isolation** for security and privacy
+
+#### Chat Processing
+- **Asynchronous** message processing pipeline
+- **Context window management** with smart truncation
+- **Token counting** for efficient resource usage
+- **Timestamp management** for message ordering
+
+### 🔄 Conversation Flow
+1. User sends a message to the `/chat` endpoint
+2. System retrieves or creates a conversation context
+3. Message is processed through the chat graph
+4. Response is generated using GPT-4o-mini
+5. Conversation state is updated and persisted
+
+### 🎛 API Endpoints
+- `POST /chat` - Process a chat message
+- `DELETE /conversations/{conversation_id}` - Clear a conversation
+- `GET /conversations` - List all active conversations
+- `GET /health` - Check API health status
+
+### 🛠 Technical Details
+- **State Management**: Thread-safe conversation state tracking
+- **Token Management**: Automatic truncation of long conversations
+- **Error Handling**: Comprehensive error handling and logging
+- **Scalability**: Designed for horizontal scaling
 
 ## 🌐 API Documentation
 
