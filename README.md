@@ -1,4 +1,4 @@
-# 🚀 Startup Bakery
+# 🚀 GTM AGENT
 
 An agentic AI chat assistant, designed to help you bake your next successful startup idea.
 
@@ -33,7 +33,7 @@ An agentic AI chat assistant, designed to help you bake your next successful sta
 - Git
 - UV (Python package installer)
 
-### Python Installation
+### Python Installation 3.9+
 
 #### macOS/Linux
 1. **Install Python** (if not already installed):
@@ -93,14 +93,13 @@ uv --version
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd startup-bakery
+   cd GTMAgent
    ```
 
 2. **Set up the backend**
    ```bash
    cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   uv venv
    uv pip install .
    cp .env-example .env
    ```

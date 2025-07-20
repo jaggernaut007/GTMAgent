@@ -3,20 +3,22 @@ import logging.config
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any, Union, AsyncGenerator
+from typing import Optional, List, AsyncGenerator
 from uuid import uuid4
 
-from fastapi import FastAPI, Request, HTTPException, Header, Depends, status
+from fastapi import FastAPI, HTTPException, Header, Depends, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 
 # Import the chat processor with the new history management
-from chat_graph import process_message, clear_conversation, ChatManager
+from chat_manager import process_message, ChatManager
+from dotenv import load_dotenv
+load_dotenv()
 
 # Configure logging
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -58,19 +60,19 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup event
-    logger.info("Starting Startup Bakery API server...")
+    logger.info("Starting GTM Agent API server...")
     logger.info(f"Environment: {os.getenv('ENV', 'development')}")
     logger.info(f"Log level: {LOG_LEVEL}")
     
     yield  # This is where the application runs
     
     # Shutdown event
-    logger.info("Shutting down Startup Bakery API server...")
+    logger.info("Shutting down GTM Agent API server...")
 
 # Initialize FastAPI app with lifespan
 app = FastAPI(
-    title="Startup Bakery API",
-    description="API for the Startup Bakery chat application with conversation management",
+    title="GTM Agent API",
+    description="API for the GTM Agent chat application with conversation management",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -179,12 +181,12 @@ async def chat(
 
 # Conversation management endpoints
 @app.post("/conversations/{conversation_id}/clear", tags=["conversations"])
-async def clear_conversation_endpoint(conversation_id: str):
+def clear_conversation_endpoint(conversation_id: str):
     """Clear the history of a specific conversation."""
     logger.info(f"Clearing conversation: {conversation_id}")
     try:
-        from chat_graph import clear_conversation as clear_conv_func
-        await clear_conv_func(conversation_id)
+        from chat_manager import clear_conversation as clear_conv_func
+        clear_conv_func(conversation_id)
         logger.info(f"Successfully cleared conversation: {conversation_id}")
         return {
             "status": "success",
