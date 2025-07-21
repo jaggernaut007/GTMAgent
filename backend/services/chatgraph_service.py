@@ -11,38 +11,55 @@ from typing import Annotated, Optional, List
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
-from operator import add
-from langchain_core.tools import tool
 from langchain_community.tools.brave_search.tool import BraveSearch
+
 from dotenv import load_dotenv
 from utils.chat_utils import summarize_messages
+from typing import TypedDict
+# If you want full content:
+import requests
+from bs4 import BeautifulSoup
+import json
 
+MAX_TOKENS = 4000
 load_dotenv()
 
-
-from typing import TypedDict
-
-# Pure type hint for static checking only; not used at runtime
 class ChatState(TypedDict):
     messages: List[dict]
     needs_search: bool
     search_query: Optional[str]
     search_results: Optional[str]
 
-
-MAX_TOKENS = 4000
-
-
-
 def web_search(query: str) -> str:
-    """Perform a web search using Brave Search and return results as a string."""
-    # You must set your Brave Search API key in the environment variable 'BRAVE_API_KEY'
+    """Perform a web search using Brave Search and return results as a string with snippets and scraped page text for the first 5 results."""
     BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
     if not BRAVE_API_KEY:
         raise RuntimeError("BRAVE_API_KEY environment variable not set.")
 
     brave_search_tool = BraveSearch.from_api_key(BRAVE_API_KEY, search_kwargs={"count": 5})
-    return brave_search_tool.invoke(query)
+    # Parse the Brave search results as JSON if needed
+    raw_results = brave_search_tool.invoke(query)
+    if isinstance(raw_results, str):
+        results = json.loads(raw_results)
+    else:
+        results = raw_results
+
+    output = []
+    for idx, result in enumerate(results, 1):
+        title = result.get("title", "")
+        snippet = result.get("snippet", "")
+        link = result.get("link", "")
+        page_text = ""
+        if link:
+            try:
+                response = requests.get(link, timeout=10)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.text, "html.parser")
+                page_text = soup.get_text(separator="\n", strip=True)
+            except Exception as e:
+                page_text = f"Could not retrieve page content: {e}"
+        output.append(f"Result {idx}:\nTitle: {title}\nSnippet: {snippet}\nLink: {link}\nPage Content:\n{page_text}\n{'-'*40}")
+    return "\n".join(output)
 
 class ChatProcessor:
     def __init__(self, conversation_id: str = "default"):
@@ -160,11 +177,18 @@ class ChatProcessor:
                     messages.append(AIMessage(content=msg["content"]))
                 elif msg["role"] == "system":
                     messages.append(SystemMessage(content=msg["content"]))
-            # If there are web search results, add them as a system message
+            # If there are web search results, add them as a system message with clear instructions and readable formatting
+            import json
             search_results = state.get("search_results")
-            if search_results is not None and str(search_results).strip() != "":
-                messages.append(SystemMessage(content=f"Web search results, use this to answer the question asked: {search_results}"))
-                self.logger.debug(f"Added web search results to LLM messages: {search_results}")
+            self.logger.debug(f"Search results: {search_results}")
+            if search_results is not None :
+                system_prompt = (
+                    "Here are recent web search results. Use these to answer the user's question as best as possible. "
+                    " Include a brief summary or highlight of current headlines drawn from the snippets provided, to add context to the answer."
+                    "If you don't find an answer, say so. Results:\n" + search_results
+                )
+                messages.append(SystemMessage(content=system_prompt))
+                self.logger.debug(f"Added formatted web search results to LLM messages: {search_results}")
             self.logger.debug(f"Messages for llm node: {messages}")
             response = self.llm.invoke(messages)
             self.logger.info(f"LLM llm node response: {response.content}")
